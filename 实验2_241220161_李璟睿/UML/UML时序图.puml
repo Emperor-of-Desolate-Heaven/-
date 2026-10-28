@@ -1,0 +1,43 @@
+@startuml 提交审核时序图
+title 提交与审核时序图（交互性图）
+
+actor 普通成员
+actor 管理员
+participant "UI界面" as UI
+participant "记录管理模块" as Record
+participant "审核模块" as Audit
+participant "数据层(MySQL)" as DB
+participant "统计模块" as Stats
+
+普通成员 -> UI : 填写记录（原因/金额/时间/凭证）
+UI -> Record : 提交记录(recordData)
+Record -> Record : 校验金额范围、查重
+alt 金额非法或疑似重复
+    Record --> UI : 拒绝并提示
+    UI --> 普通成员 : 提示修改后重新提交
+else 校验通过
+    Record -> DB : 保存记录（状态=待审核）
+end
+
+管理员 -> UI : 查看待审核列表
+UI -> DB : 查询待审核记录
+DB --> UI : 返回列表
+管理员 -> UI : 选择记录并审核
+UI -> Audit : 审核(recordID, 结果)
+Audit -> Audit : 竞争加锁
+alt 已被其他管理员审核中
+    Audit --> UI : 拒绝审核并提示
+else 加锁成功
+    alt 审核通过
+        Audit -> DB : 更新状态=已生效
+        DB -> Stats : 通知记录生效
+        Stats -> Stats : 更新账本统计
+        Audit --> UI : 返回通过结果
+    else 审核驳回
+        Audit -> DB : 更新状态=已驳回（附理由）
+        Audit --> UI : 返回驳回结果
+        UI --> 普通成员 : 通知驳回，可修改后重新提交
+    end
+end
+
+@enduml

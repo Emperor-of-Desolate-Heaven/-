@@ -1,0 +1,72 @@
+@startuml 系统组件图
+title 系统组件图（结构性图）
+
+package "表现层" {
+  component [登录界面] as UI_Login
+  component [账本主页\n（统计/红绿灯）] as UI_Home
+  component [记录列表与查询] as UI_Query
+  component [记录提交表单] as UI_Submit
+  component [审核页] as UI_Audit
+  component [成员管理页] as UI_Member
+  component [结算页] as UI_Settle
+  component [日志查看页] as UI_Log
+}
+
+package "业务逻辑层" {
+  component [用户与权限模块] as SVC_Auth
+  component [账本与模板模块] as SVC_Ledger
+  component [成员管理模块] as SVC_Member
+  component [收支记录模块] as SVC_Record
+  component [审核模块\n（竞争加锁）] as SVC_Audit
+  component [查询统计模块] as SVC_Stats
+  component [结算模块] as SVC_Settle
+  component [预算报警模块] as SVC_Budget
+  component [日志模块] as SVC_Log
+}
+
+package "数据访问层" {
+  component [数据访问组件\n（各模块 DAO）] as DAO
+  database "MySQL 数据库" as MySQL
+}
+
+interface "IAudit 审核接口" as IAudit
+interface "IStats 统计接口" as IStats
+
+' 表现层 → 业务层
+UI_Login ..> SVC_Auth
+UI_Submit ..> SVC_Record
+UI_Audit ..> SVC_Audit
+UI_Member ..> SVC_Member
+UI_Settle ..> SVC_Settle
+UI_Log ..> SVC_Log
+UI_Query ..> SVC_Stats
+UI_Home ..> SVC_Stats
+UI_Home ..> SVC_Budget
+
+' 业务层模块间接口（提供/使用）
+SVC_Audit --( IAudit
+SVC_Record ..> IAudit
+SVC_Stats --( IStats
+SVC_Record ..> IStats
+SVC_Settle ..> IStats
+
+' 业务层 → 数据访问层
+SVC_Auth ..> DAO
+SVC_Ledger ..> DAO
+SVC_Member ..> DAO
+SVC_Record ..> DAO
+SVC_Audit ..> DAO
+SVC_Stats ..> DAO
+SVC_Settle ..> DAO
+SVC_Budget ..> DAO
+SVC_Log ..> DAO
+
+DAO ..> MySQL
+
+note bottom of DAO
+  依赖方向一律自上而下（单向）：
+  表现层 → 业务层 → 数据层，
+  数据层不反向依赖上层
+end note
+
+@enduml
