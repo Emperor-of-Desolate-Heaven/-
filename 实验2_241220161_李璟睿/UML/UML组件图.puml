@@ -5,7 +5,7 @@ package "表现层" {
   component [登录界面] as UI_Login
   component [账本主页\n（统计/红绿灯）] as UI_Home
   component [记录列表与查询] as UI_Query
-  component [记录提交表单] as UI_Submit
+  component [创建账本页] as UI_NewLedger
   component [审核页] as UI_Audit
   component [成员管理页] as UI_Member
   component [结算页] as UI_Settle
@@ -34,7 +34,8 @@ interface "IStats 统计接口" as IStats
 
 ' 表现层 → 业务层
 UI_Login ..> SVC_Auth
-UI_Submit ..> SVC_Record
+UI_NewLedger ..> SVC_Ledger
+UI_Home ..> SVC_Record
 UI_Audit ..> SVC_Audit
 UI_Member ..> SVC_Member
 UI_Settle ..> SVC_Settle
