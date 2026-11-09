@@ -40,11 +40,14 @@ CREATE TABLE IF NOT EXISTS ledger (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. 成员关系（类图：成员关系 + Role 枚举）
+-- 说明：status 列是实现补充设计——加入申请（REQ-003）需要"待审核"中间态，
+-- 申请=插入待审核行，审批通过/直接拉入=已生效。
 CREATE TABLE IF NOT EXISTS membership (
   membership_id INT AUTO_INCREMENT PRIMARY KEY,
   ledger_id     INT NOT NULL,
   user_id       INT NOT NULL,
   role          ENUM('创建者','超级管理员','管理员','普通用户') NOT NULL DEFAULT '普通用户',
+  status        ENUM('待审核','已生效') NOT NULL DEFAULT '已生效' COMMENT '成员关系状态：待审核=加入申请中',
   join_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   visibility_on TINYINT(1) NOT NULL DEFAULT 1 COMMENT '记录可见性：1=对其他成员可见 0=不可见',
   UNIQUE KEY uk_membership (ledger_id, user_id),

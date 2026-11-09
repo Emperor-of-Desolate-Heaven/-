@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from model.enums import Role
+from model.enums import MembershipStatus, Role
 
 
 @dataclass
@@ -19,6 +19,7 @@ class Membership:
     ledger_id: int = 0
     user_id: int = 0
     role: Role = Role.MEMBER
+    status: MembershipStatus = MembershipStatus.ACTIVE
     join_time: Optional[datetime] = None
     # 合租场景：提交人的记录对其他成员是否可见（REQ-022）
     visibility_on: bool = True

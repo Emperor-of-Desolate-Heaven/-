@@ -3,7 +3,7 @@
 from typing import Optional
 
 from dao.db import get_connection
-from model.enums import Role
+from model.enums import MembershipStatus, Role
 from model.membership import Membership
 
 
@@ -14,25 +14,31 @@ def _row_to_membership(row: dict) -> Membership:
         ledger_id=row["ledger_id"],
         user_id=row["user_id"],
         role=Role(row["role"]),
+        status=MembershipStatus(row["status"]),
         join_time=row["join_time"],
         visibility_on=bool(row["visibility_on"]),
     )
 
 
-def add(ledger_id: int, user_id: int, role: Role = Role.MEMBER) -> int:
-    """新增成员关系，返回成员关系 ID。"""
+def add(
+    ledger_id: int,
+    user_id: int,
+    role: Role = Role.MEMBER,
+    status: MembershipStatus = MembershipStatus.ACTIVE,
+) -> int:
+    """新增成员关系（拉入直接已生效；申请为待审核），返回成员关系 ID。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO membership (ledger_id, user_id, role) "
-                "VALUES (%s, %s, %s)",
-                (ledger_id, user_id, role.value),
+                "INSERT INTO membership (ledger_id, user_id, role, status) "
+                "VALUES (%s, %s, %s, %s)",
+                (ledger_id, user_id, role.value, status.value),
             )
             return cur.lastrowid
 
 
 def get(ledger_id: int, user_id: int) -> Optional[Membership]:
-    """查询某用户在某账本中的成员关系，不存在返回 None。"""
+    """查询某用户在某账本中的成员关系（含待审核申请），不存在返回 None。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -56,15 +62,37 @@ def get_by_id(membership_id: int) -> Optional[Membership]:
 
 
 def list_by_ledger(ledger_id: int) -> list[Membership]:
-    """查询账本的全部成员关系。"""
+    """查询账本的全部已生效成员（不含待审核申请）。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM membership WHERE ledger_id = %s "
-                "ORDER BY membership_id",
-                (ledger_id,),
+                "SELECT * FROM membership "
+                "WHERE ledger_id = %s AND status = %s ORDER BY membership_id",
+                (ledger_id, MembershipStatus.ACTIVE.value),
             )
             return [_row_to_membership(row) for row in cur.fetchall()]
+
+
+def list_pending(ledger_id: int) -> list[Membership]:
+    """查询账本的待审核加入申请列表。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM membership "
+                "WHERE ledger_id = %s AND status = %s ORDER BY membership_id",
+                (ledger_id, MembershipStatus.PENDING.value),
+            )
+            return [_row_to_membership(row) for row in cur.fetchall()]
+
+
+def update_status(membership_id: int, status: MembershipStatus) -> None:
+    """更新成员关系状态（审批通过 = 待审核 → 已生效）。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE membership SET status = %s WHERE membership_id = %s",
+                (status.value, membership_id),
+            )
 
 
 def update_role(membership_id: int, role: Role) -> None:
@@ -78,7 +106,7 @@ def update_role(membership_id: int, role: Role) -> None:
 
 
 def set_visibility(membership_id: int, visibility_on: bool) -> None:
-    """设置记录可见性（REQ-022）。"""
+    """设置记录可见性（REQ-022：合租账本，提交人整体设置）。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -89,7 +117,7 @@ def set_visibility(membership_id: int, visibility_on: bool) -> None:
 
 
 def remove(membership_id: int) -> None:
-    """移除成员关系（REQ-003）。"""
+    """移除成员关系（REQ-003 退出 / 踢人）。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -99,12 +127,12 @@ def remove(membership_id: int) -> None:
 
 
 def count_by_role(ledger_id: int, role: Role) -> int:
-    """统计账本内某角色的成员数量（用于"一个账本只能有一个超级管理员"校验）。"""
+    """统计账本内某角色的已生效成员数量（用于"一个账本只能有一个超管"校验）。"""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT COUNT(*) AS cnt FROM membership "
-                "WHERE ledger_id = %s AND role = %s",
-                (ledger_id, role.value),
+                "WHERE ledger_id = %s AND role = %s AND status = %s",
+                (ledger_id, role.value, MembershipStatus.ACTIVE.value),
             )
             return cur.fetchone()["cnt"]

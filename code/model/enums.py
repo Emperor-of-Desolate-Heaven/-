@@ -4,6 +4,7 @@
 - RecordStatus：收支记录状态（REQ-007）
 - LogOpType：操作日志类型（REQ-015）
 - Direction：收支方向（REQ-010 统计需要区分收入与支出）
+- MembershipStatus：成员关系状态（REQ-003 加入申请流程需要，实现补充设计）
 """
 
 from enum import Enum
@@ -43,6 +44,17 @@ class LogOpType(Enum):
     DELETE = "删除"
     MODIFY = "修改"
     AUDIT_FAIL = "审核失败"
+
+
+class MembershipStatus(Enum):
+    """成员关系状态（REQ-003 加入申请）。
+
+    待审核 = 成员已发起加入申请、等待超管审批；
+    已生效 = 正式成员（申请通过或由超管直接拉入）。
+    """
+
+    PENDING = "待审核"
+    ACTIVE = "已生效"
 
 
 class Direction(Enum):

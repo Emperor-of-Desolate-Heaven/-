@@ -1,7 +1,8 @@
 """model 层：实体与枚举，对应 UML 类图的 10 个实体类和 3 个枚举。"""
 
 from model.budget import Budget
-from model.enums import Direction, LogOpType, RecordStatus, Role
+from model.enums import (Direction, LogOpType, MembershipStatus,
+                          RecordStatus, Role)
 from model.ledger import Ledger
 from model.ledger_record import LedgerRecord
 from model.log_access_grant import LogAccessGrant
@@ -20,6 +21,7 @@ __all__ = [
     "LogAccessGrant",
     "LogOpType",
     "Membership",
+    "MembershipStatus",
     "OperationLog",
     "RecordStatus",
     "Role",

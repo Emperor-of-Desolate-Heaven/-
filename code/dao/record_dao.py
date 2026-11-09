@@ -120,6 +120,72 @@ def update_amount(record_id: int, amount: Decimal) -> None:
             )
 
 
+def update_submitter_by_owner(
+    ledger_id: int, old_user_id: int, new_user_id: int
+) -> int:
+    """把某成员的全部未删除记录转让给另一成员（REQ-003 退出时记录转让）。
+
+    已删除的记录不随转让。返回转让的记录条数。
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET submitter_id = %s "
+                "WHERE ledger_id = %s AND submitter_id = %s "
+                "AND status <> %s",
+                (
+                    new_user_id,
+                    ledger_id,
+                    old_user_id,
+                    RecordStatus.DELETED.value,
+                ),
+            )
+            return cur.rowcount
+
+
+def reject_all_pending_by_submitter(
+    ledger_id: int, user_id: int, reason: str
+) -> int:
+    """把某成员的全部待审核记录改为已驳回（REQ-003：退出成员存在待审核记录时直接审核失败）。
+
+    返回处理的记录条数。
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET status = %s, reject_reason = %s "
+                "WHERE ledger_id = %s AND submitter_id = %s AND status = %s",
+                (
+                    RecordStatus.REJECTED.value,
+                    reason,
+                    ledger_id,
+                    user_id,
+                    RecordStatus.PENDING.value,
+                ),
+            )
+            return cur.rowcount
+
+
+def delete_all_by_submitter(ledger_id: int, user_id: int) -> int:
+    """把某成员的全部未删除记录注销（REQ-003 退出时选择注销记录）。
+
+    返回处理的记录条数。
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET status = %s "
+                "WHERE ledger_id = %s AND submitter_id = %s AND status <> %s",
+                (
+                    RecordStatus.DELETED.value,
+                    ledger_id,
+                    user_id,
+                    RecordStatus.DELETED.value,
+                ),
+            )
+            return cur.rowcount
+
+
 def update_fields(
     record_id: int,
     category: str,
