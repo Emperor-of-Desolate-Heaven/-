@@ -256,7 +256,7 @@ def delete_all_by_submitter(ledger_id: int, user_id: int) -> int:
             return cur.rowcount
 
 
-def update_fields(
+def update_fields(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     record_id: int,
     category: str,
     reason: str,
@@ -318,7 +318,7 @@ def exists_duplicate(
             return cur.fetchone()["cnt"] > 0
 
 
-def query(
+def query(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     ledger_id: int,
     category: Optional[str] = None,
     submitter_id: Optional[int] = None,

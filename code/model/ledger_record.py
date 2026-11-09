@@ -27,7 +27,7 @@ ALLOWED_TRANSITIONS = {
 
 
 @dataclass
-class LedgerRecord:
+class LedgerRecord:  # pylint: disable=too-many-instance-attributes
     """收支记录：账本中的一笔收入或支出（REQ-004 ~ REQ-008）。"""
 
     record_id: Optional[int] = None

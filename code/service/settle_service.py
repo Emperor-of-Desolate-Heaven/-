@@ -58,11 +58,17 @@ def _cutoff(settle_at: datetime) -> datetime:
 
 
 def _period_start(ledger_id: int) -> datetime:
-    """结算周期起点：上一次结算时间点；首次结算为账本生效时间。"""
+    """结算周期起点：上一次结算时间点；首次结算为账本生效时间。
+
+    记录时间输入只精确到分钟，首次结算起点对齐到分钟，
+    避免账本创建同一分钟内的记录被周期起点（带秒）排除。
+    """
     latest = settlement_dao.get_latest(ledger_id)
     if latest is not None and latest.settle_time is not None:
         return latest.settle_time
-    return ledger_dao.get_by_id(ledger_id).effective_time
+    return ledger_dao.get_by_id(ledger_id).effective_time.replace(
+        second=0, microsecond=0
+    )
 
 
 def _compute(

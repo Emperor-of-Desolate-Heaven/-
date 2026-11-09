@@ -3,7 +3,9 @@
 from typing import Optional
 
 from dao.db import get_connection
+from model.enums import MembershipStatus, Role
 from model.ledger import Ledger
+from model.membership import Membership
 
 
 def _row_to_ledger(row: dict) -> Ledger:
@@ -59,6 +61,35 @@ def is_settling(ledger_id: int) -> bool:
             )
             row = cur.fetchone()
             return bool(row["settling"]) if row else False
+
+
+def list_with_membership_by_user(
+    user_id: int,
+) -> list[tuple[Ledger, Membership]]:
+    """查询某用户参与的全部账本及成员关系（含待审核申请，界面展示用）。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT l.*, m.membership_id, m.role, m.status AS m_status, "
+                "m.join_time, m.visibility_on "
+                "FROM ledger l JOIN membership m ON l.ledger_id = m.ledger_id "
+                "WHERE m.user_id = %s ORDER BY l.ledger_id",
+                (user_id,),
+            )
+            result = []
+            for row in cur.fetchall():
+                ledger = _row_to_ledger(row)
+                membership = Membership(
+                    membership_id=row["membership_id"],
+                    ledger_id=ledger.ledger_id,
+                    user_id=user_id,
+                    role=Role(row["role"]),
+                    status=MembershipStatus(row["m_status"]),
+                    join_time=row["join_time"],
+                    visibility_on=bool(row["visibility_on"]),
+                )
+                result.append((ledger, membership))
+            return result
 
 
 def list_by_user(user_id: int) -> list[Ledger]:

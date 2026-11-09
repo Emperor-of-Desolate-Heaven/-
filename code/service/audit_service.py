@@ -8,6 +8,7 @@ alt 分支"已被其他管理员审核中 → 拒绝审核并提示"。
 
 from dao import log_dao, membership_dao, record_dao
 from model.enums import LogOpType, MembershipStatus, RecordStatus
+from model.ledger_record import LedgerRecord
 from model.operation_log import OperationLog
 from service import settle_service
 
@@ -27,6 +28,14 @@ def _add_audit_fail_log(ledger_id, auditor_id, submitter_id) -> None:
     log_dao.add(OperationLog(
         ledger_id=ledger_id, op_type=LogOpType.AUDIT_FAIL, category="记录审核",
         auditor_id=auditor_id, submitter_id=submitter_id))
+
+
+def list_pending(
+    ledger_id: int, auditor_id: int
+) -> list[LedgerRecord]:
+    """查看待审核记录列表（REQ-006，仅管理员）。"""
+    _require_admin(ledger_id, auditor_id)
+    return record_dao.list_by_status(ledger_id, RecordStatus.PENDING)
 
 
 def approve(record_id: int, auditor_id: int) -> None:

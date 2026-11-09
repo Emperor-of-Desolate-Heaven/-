@@ -11,8 +11,7 @@ from typing import Optional
 
 from dao import ledger_dao, log_dao, membership_dao, record_dao, split_dao, \
     template_dao
-from model.enums import Direction, LogOpType, MembershipStatus, RecordStatus, \
-    Role
+from model.enums import Direction, LogOpType, MembershipStatus, RecordStatus
 from model.ledger_record import LedgerRecord
 from model.operation_log import OperationLog
 from model.split_item import SplitItem
@@ -82,7 +81,7 @@ def _add_log(ledger_id, op_type, category, auditor_id, submitter_id) -> None:
         auditor_id=auditor_id, submitter_id=submitter_id))
 
 
-def submit_record(
+def submit_record(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     ledger_id: int,
     submitter_id: int,
     category: str,
@@ -121,7 +120,7 @@ def submit_record(
     return record_id
 
 
-def resubmit(
+def resubmit(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     record_id: int,
     operator_id: int,
     category: str,

@@ -8,9 +8,11 @@
 - 合租账本的记录可见性由提交人本人整体设置（REQ-022），其他模板无此开关
 """
 
+from dataclasses import dataclass
+
 from dao import (ledger_dao, log_dao, membership_dao, record_dao,
                  template_dao, user_dao)
-from model.enums import LogOpType, MembershipStatus, RecordStatus, Role
+from model.enums import LogOpType, MembershipStatus, Role
 from model.membership import Membership
 from model.operation_log import OperationLog
 from service import settle_service
@@ -54,6 +56,32 @@ def _add_log(
     )
 
 
+@dataclass
+class MemberInfo:
+    """成员视图信息：成员关系 + 用户名（界面展示用）。"""
+
+    membership: Membership
+    username: str
+
+
+def get_membership(ledger_id: int, operator_id: int) -> Membership:
+    """查询操作者在该账本的成员关系（界面据此显示角色可用功能）。"""
+    return _get_operator(ledger_id, operator_id)
+
+
+def list_members(ledger_id: int, operator_id: int) -> list[MemberInfo]:
+    """查看账本成员列表（所有成员可见），附带用户名供界面展示。"""
+    _get_operator(ledger_id, operator_id)
+    result = []
+    for member in membership_dao.list_by_ledger(ledger_id):
+        user = user_dao.get_by_id(member.user_id)
+        result.append(MemberInfo(
+            membership=member,
+            username=user.username if user else f"用户{member.user_id}",
+        ))
+    return result
+
+
 # ---------- 加入 ----------
 
 def apply_join(ledger_id: int, user_id: int) -> int:
@@ -67,10 +95,17 @@ def apply_join(ledger_id: int, user_id: int) -> int:
                               MembershipStatus.PENDING)
 
 
-def list_applications(ledger_id: int, operator_id: int) -> list[Membership]:
-    """查看待审核加入申请（仅超管）。"""
+def list_applications(ledger_id: int, operator_id: int) -> list[MemberInfo]:
+    """查看待审核加入申请（仅超管），附带申请人用户名。"""
     _require_super_admin(ledger_id, operator_id)
-    return membership_dao.list_pending(ledger_id)
+    result = []
+    for membership in membership_dao.list_pending(ledger_id):
+        user = user_dao.get_by_id(membership.user_id)
+        result.append(MemberInfo(
+            membership=membership,
+            username=user.username if user else f"用户{membership.user_id}",
+        ))
+    return result
 
 
 def approve_join(membership_id: int, operator_id: int) -> None:
