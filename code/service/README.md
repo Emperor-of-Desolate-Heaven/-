@@ -12,8 +12,8 @@
 | `auth_service.py` | 用户与权限（SVC_Auth） | 注册、登录（SHA-256 哈希存库） |
 | `ledger_service.py` | 账本与模板（SVC_Ledger） | 创建账本（必选模板）、查用户账本列表 |
 | `member_service.py` | 成员管理（SVC_Member） | 加入申请/审批、拉人、改角色、超管转让、可见性、退出/踢人 |
-| `record_service.py` | 收支记录（SVC_Record） | 【待实现，第 5 块】 |
-| `audit_service.py` | 审核（SVC_Audit） | 【待实现，第 5 块】 |
+| `record_service.py` | 收支记录（SVC_Record） | 提交（金额/类别/查重/分摊校验）、重新提交、改金额、删除、发起转让 |
+| `audit_service.py` | 审核（SVC_Audit） | 审核通过/驳回，条件更新实现竞争加锁 |
 | `stats_service.py` | 查询统计（SVC_Stats） | 【待实现，第 6 块】 |
 | `settle_service.py` | 结算（SVC_Settle） | 【待实现，第 6 块】 |
 | `budget_service.py` | 预算报警（SVC_Budget） | 【待实现，第 6 块】 |

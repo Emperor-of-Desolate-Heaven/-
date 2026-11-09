@@ -15,6 +15,7 @@ def _row_to_record(row: dict) -> LedgerRecord:
         record_id=row["record_id"],
         ledger_id=row["ledger_id"],
         submitter_id=row["submitter_id"],
+        transfer_to=row["transfer_to_user_id"],
         category=row["category"],
         reason=row["reason"],
         amount=row["amount"],
@@ -32,12 +33,13 @@ def add(record: LedgerRecord) -> int:
         with conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO ledger_record "
-                "(ledger_id, submitter_id, category, reason, amount, "
-                " direction, record_time, receipt, status) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "(ledger_id, submitter_id, transfer_to_user_id, category, "
+                " reason, amount, direction, record_time, receipt, status) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (
                     record.ledger_id,
                     record.submitter_id,
+                    record.transfer_to,
                     record.category,
                     record.reason,
                     record.amount,
@@ -100,7 +102,10 @@ def update_status(
     status: RecordStatus,
     reject_reason: Optional[str] = None,
 ) -> None:
-    """更新记录状态，可同时写入驳回理由（REQ-006、REQ-007）。"""
+    """无条件更新记录状态（仅测试与内部流程使用）。
+
+    业务状态转换请用条件更新 update_status_if，防止并发下覆盖他人操作。
+    """
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -108,6 +113,71 @@ def update_status(
                 "WHERE record_id = %s",
                 (status.value, reject_reason, record_id),
             )
+
+
+def update_status_if(
+    record_id: int,
+    from_status: RecordStatus,
+    to_status: RecordStatus,
+    reject_reason: Optional[str] = None,
+) -> int:
+    """条件状态转换（竞争加锁，REQ-007）：仅当记录处于 from_status 时才更新。
+
+    UPDATE 本身是原子操作——多名管理员同时审核同一条记录时，
+    只有一人匹配到待审核状态，其他人受影响行数为 0。
+    返回受影响行数（1=转换成功，0=已被他人处理）。
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET status = %s, reject_reason = %s "
+                "WHERE record_id = %s AND status = %s",
+                (to_status.value, reject_reason, record_id, from_status.value),
+            )
+            return cur.rowcount
+
+
+def set_transfer(record_id: int, transfer_to: int) -> int:
+    """发起转让申请（REQ-005）：已生效 → 待审核，并暂存转让目标。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET status = %s, "
+                "transfer_to_user_id = %s, reject_reason = NULL "
+                "WHERE record_id = %s AND status = %s",
+                (
+                    RecordStatus.PENDING.value,
+                    transfer_to,
+                    record_id,
+                    RecordStatus.ACTIVE.value,
+                ),
+            )
+            return cur.rowcount
+
+
+def approve_if_pending(record_id: int) -> int:
+    """审核通过（竞争加锁）：待审核 → 已生效。
+
+    若该记录是转让申请（transfer_to 非空），同一事务内把上传人改为
+    转让目标并清空转让标记。返回 1=成功，0=记录已不是待审核（已被他人处理）。
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger_record SET status = %s, reject_reason = NULL "
+                "WHERE record_id = %s AND status = %s",
+                (RecordStatus.ACTIVE.value, record_id,
+                 RecordStatus.PENDING.value),
+            )
+            if cur.rowcount == 0:
+                return 0
+            cur.execute(
+                "UPDATE ledger_record SET submitter_id = transfer_to_user_id, "
+                "transfer_to_user_id = NULL "
+                "WHERE record_id = %s AND transfer_to_user_id IS NOT NULL",
+                (record_id,),
+            )
+            return 1
 
 
 def update_amount(record_id: int, amount: Decimal) -> None:
@@ -201,7 +271,8 @@ def update_fields(
             cur.execute(
                 "UPDATE ledger_record SET category = %s, reason = %s, "
                 "amount = %s, direction = %s, record_time = %s, receipt = %s, "
-                "status = %s, reject_reason = NULL WHERE record_id = %s",
+                "status = %s, reject_reason = NULL, "
+                "transfer_to_user_id = NULL WHERE record_id = %s",
                 (
                     category,
                     reason,

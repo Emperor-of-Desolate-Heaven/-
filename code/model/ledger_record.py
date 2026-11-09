@@ -33,6 +33,7 @@ class LedgerRecord:
     record_id: Optional[int] = None
     ledger_id: int = 0
     submitter_id: int = 0
+    transfer_to: Optional[int] = None  # 转让申请目标（审核通过后成为新上传人）
     category: str = ""
     reason: str = ""
     amount: Decimal = Decimal("0.00")

@@ -65,10 +65,13 @@ CREATE TABLE IF NOT EXISTS budget (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. 收支记录（类图：收支记录 + RecordStatus 枚举）
+-- 说明：transfer_to_user_id 是实现补充设计——转让申请（REQ-005）审核期间
+-- 需要暂存转让目标，审核通过后写入 submitter_id。
 CREATE TABLE IF NOT EXISTS ledger_record (
   record_id     INT AUTO_INCREMENT PRIMARY KEY,
   ledger_id     INT NOT NULL,
   submitter_id  INT NOT NULL COMMENT '上传人',
+  transfer_to_user_id INT NULL COMMENT '转让申请目标成员（审核通过后成为新上传人）',
   category      VARCHAR(50)  NOT NULL COMMENT '类别（来自模板默认类别）',
   reason        VARCHAR(200) NOT NULL,
   amount        DECIMAL(12,2) NOT NULL,
@@ -78,7 +81,8 @@ CREATE TABLE IF NOT EXISTS ledger_record (
   status        ENUM('待审核','已生效','已驳回','已删除') NOT NULL DEFAULT '待审核',
   reject_reason VARCHAR(200) COMMENT '驳回理由',
   FOREIGN KEY (ledger_id)    REFERENCES ledger(ledger_id) ON DELETE CASCADE,
-  FOREIGN KEY (submitter_id) REFERENCES user(user_id)
+  FOREIGN KEY (submitter_id) REFERENCES user(user_id),
+  FOREIGN KEY (transfer_to_user_id) REFERENCES user(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. 分摊明细（类图：分摊明细；收支记录 1 *-- * 分摊明细，组合）
