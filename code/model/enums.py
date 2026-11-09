@@ -38,12 +38,18 @@ class RecordStatus(Enum):
 
 
 class LogOpType(Enum):
-    """操作日志类型（类图 LogOpType，REQ-015）。"""
+    """操作日志类型（类图 LogOpType，REQ-015）。
+
+    前四类为需求要求的留痕操作；查看日志为实现补充设计——
+    REQ-015 要求超管可查看"管理员查看日志"的记录，
+    因此管理员每次查看日志时写入一条该类型日志。
+    """
 
     JOIN = "加入"
     DELETE = "删除"
     MODIFY = "修改"
     AUDIT_FAIL = "审核失败"
+    VIEW = "查看日志"
 
 
 class MembershipStatus(Enum):
@@ -55,6 +61,19 @@ class MembershipStatus(Enum):
 
     PENDING = "待审核"
     ACTIVE = "已生效"
+
+
+class GrantStatus(Enum):
+    """日志访问授权状态（REQ-015 申请→审批流程，实现补充设计）。
+
+    待审批 = 普通成员已申请、等待管理员审批；
+    已批准 = 管理员审批通过，成员可查看日志一次；
+    已驳回 = 管理员拒绝申请。
+    """
+
+    PENDING = "待审批"
+    APPROVED = "已批准"
+    REJECTED = "已驳回"
 
 
 class Direction(Enum):

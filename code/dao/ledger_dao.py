@@ -13,6 +13,7 @@ def _row_to_ledger(row: dict) -> Ledger:
         name=row["name"],
         template_id=row["template_id"],
         effective_time=row["effective_time"],
+        settling=bool(row["settling"]),
     )
 
 
@@ -36,6 +37,28 @@ def get_by_id(ledger_id: int) -> Optional[Ledger]:
             )
             row = cur.fetchone()
             return _row_to_ledger(row) if row else None
+
+
+def set_settling(ledger_id: int, settling: bool) -> None:
+    """设置账本结算进行中标志（REQ-012：结算期间拒绝一切操作）。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE ledger SET settling = %s WHERE ledger_id = %s",
+                (1 if settling else 0, ledger_id),
+            )
+
+
+def is_settling(ledger_id: int) -> bool:
+    """查询账本是否处于结算进行中（REQ-012）。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT settling FROM ledger WHERE ledger_id = %s",
+                (ledger_id,),
+            )
+            row = cur.fetchone()
+            return bool(row["settling"]) if row else False
 
 
 def list_by_user(user_id: int) -> list[Ledger]:

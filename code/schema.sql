@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS ledger (
   name           VARCHAR(50) NOT NULL,
   template_id    INT NOT NULL,
   effective_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  settling      TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=结算进行中（REQ-012：期间拒绝一切操作）',
   FOREIGN KEY (template_id) REFERENCES scene_template(template_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -100,7 +101,7 @@ CREATE TABLE IF NOT EXISTS split_item (
 CREATE TABLE IF NOT EXISTS operation_log (
   log_id       INT AUTO_INCREMENT PRIMARY KEY,
   ledger_id    INT NOT NULL,
-  op_type      ENUM('加入','删除','修改','审核失败') NOT NULL,
+  op_type      ENUM('加入','删除','修改','审核失败','查看日志') NOT NULL COMMENT '查看日志=管理员查看日志留痕（REQ-015，实现补充设计）',
   category     VARCHAR(50) COMMENT '日志类别',
   auditor_id   INT COMMENT '审核人',
   submitter_id INT COMMENT '提交人',
@@ -111,11 +112,14 @@ CREATE TABLE IF NOT EXISTS operation_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9. 日志访问授权（类图：日志访问授权；成员 *--* 授权，一次有效）
+-- 说明：status 列是实现补充设计——REQ-015"申请→审批"流程需要
+-- "待审批/已批准/已驳回"中间态，与 membership.status 同一模式。
 CREATE TABLE IF NOT EXISTS log_access_grant (
   grant_id       INT AUTO_INCREMENT PRIMARY KEY,
   membership_id  INT NOT NULL,
-  grant_admin_id INT NOT NULL COMMENT '授权管理员',
-  grant_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  grant_admin_id INT NOT NULL COMMENT '审批申请的管理员',
+  status         ENUM('待审批','已批准','已驳回') NOT NULL DEFAULT '待审批' COMMENT '申请状态',
+  grant_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
   used           TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否已使用（一次有效）',
   FOREIGN KEY (membership_id)  REFERENCES membership(membership_id) ON DELETE CASCADE,
   FOREIGN KEY (grant_admin_id) REFERENCES user(user_id)

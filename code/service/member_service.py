@@ -13,6 +13,7 @@ from dao import (ledger_dao, log_dao, membership_dao, record_dao,
 from model.enums import LogOpType, MembershipStatus, RecordStatus, Role
 from model.membership import Membership
 from model.operation_log import OperationLog
+from service import settle_service
 
 # 退出成员待审核记录的驳回理由（REQ-003 异常边界：直接审核失败）
 EXIT_REJECT_REASON = "成员退出，待审核记录审核失败"
@@ -57,6 +58,7 @@ def _add_log(
 
 def apply_join(ledger_id: int, user_id: int) -> int:
     """成员向超管发送加入申请（REQ-003）：生成一条待审核成员关系。"""
+    settle_service.ensure_not_settling(ledger_id)
     if ledger_dao.get_by_id(ledger_id) is None:
         raise ValueError("账本不存在")
     if membership_dao.get(ledger_id, user_id) is not None:
@@ -76,6 +78,7 @@ def approve_join(membership_id: int, operator_id: int) -> None:
     target = membership_dao.get_by_id(membership_id)
     if target is None or target.status is not MembershipStatus.PENDING:
         raise ValueError("申请不存在或已处理")
+    settle_service.ensure_not_settling(target.ledger_id)
     _require_super_admin(target.ledger_id, operator_id)
     membership_dao.update_status(membership_id, MembershipStatus.ACTIVE)
     _add_log(target.ledger_id, LogOpType.JOIN, "成员",
@@ -87,12 +90,14 @@ def reject_join(membership_id: int, operator_id: int) -> None:
     target = membership_dao.get_by_id(membership_id)
     if target is None or target.status is not MembershipStatus.PENDING:
         raise ValueError("申请不存在或已处理")
+    settle_service.ensure_not_settling(target.ledger_id)
     _require_super_admin(target.ledger_id, operator_id)
     membership_dao.remove(membership_id)
 
 
 def pull_in(ledger_id: int, username: str, operator_id: int) -> None:
     """超管按用户名直接拉人入账本（REQ-003），并记录"加入"日志。"""
+    settle_service.ensure_not_settling(ledger_id)
     _require_super_admin(ledger_id, operator_id)
     user = user_dao.get_by_username(username.strip())
     if user is None:
@@ -117,6 +122,7 @@ def set_role(membership_id: int, new_role: Role, operator_id: int) -> None:
     target = membership_dao.get_by_id(membership_id)
     if target is None or target.status is not MembershipStatus.ACTIVE:
         raise ValueError("成员不存在")
+    settle_service.ensure_not_settling(target.ledger_id)
     _require_super_admin(target.ledger_id, operator_id)
     if target.is_super_admin:
         raise PermissionError("超管角色只能通过身份转让变更")
@@ -131,6 +137,7 @@ def transfer_super_admin(
     ledger_id: int, new_admin_id: int, operator_id: int
 ) -> None:
     """超管身份转让（REQ-001）：新超管须为已生效成员；原超管降为普通用户。"""
+    settle_service.ensure_not_settling(ledger_id)
     _require_super_admin(ledger_id, operator_id)
     target = membership_dao.get(ledger_id, new_admin_id)
     if target is None or target.status is not MembershipStatus.ACTIVE:
@@ -158,6 +165,7 @@ def set_visibility(
     target = membership_dao.get_by_id(membership_id)
     if target is None or target.status is not MembershipStatus.ACTIVE:
         raise ValueError("成员不存在")
+    settle_service.ensure_not_settling(target.ledger_id)
     if target.user_id != operator_id:
         raise PermissionError("可见性只能由本人设置")
     ledger = ledger_dao.get_by_id(target.ledger_id)
@@ -185,6 +193,7 @@ def remove_member(
     if target is None or target.status is not MembershipStatus.ACTIVE:
         raise ValueError("成员不存在")
     ledger_id = target.ledger_id
+    settle_service.ensure_not_settling(ledger_id)
     operator = _get_operator(ledger_id, operator_id)
     if not (operator.is_super_admin or operator.user_id == target.user_id):
         raise PermissionError("仅超管可移除成员，成员本人可退出")

@@ -14,10 +14,10 @@
 | `member_service.py` | 成员管理（SVC_Member） | 加入申请/审批、拉人、改角色、超管转让、可见性、退出/踢人 |
 | `record_service.py` | 收支记录（SVC_Record） | 提交（金额/类别/查重/分摊校验）、重新提交、改金额、删除、发起转让 |
 | `audit_service.py` | 审核（SVC_Audit） | 审核通过/驳回，条件更新实现竞争加锁 |
-| `stats_service.py` | 查询统计（SVC_Stats） | 【待实现，第 6 块】 |
-| `settle_service.py` | 结算（SVC_Settle） | 【待实现，第 6 块】 |
-| `budget_service.py` | 预算报警（SVC_Budget） | 【待实现，第 6 块】 |
-| `log_service.py` | 日志（SVC_Log） | 【待实现，第 6 块】 |
+| `stats_service.py` | 查询统计（SVC_Stats） | 主页统计（总收支/净差/生效时间）、四条件组合查询+可见性过滤 |
+| `settle_service.py` | 结算（SVC_Settle） | 按模板自动结算（旅行一次性/合租出每人应付/家庭不结算）、结算锁 |
+| `budget_service.py` | 预算报警（SVC_Budget） | 超管设置预算、红绿灯（80%/100% 阈值） |
+| `log_service.py` | 日志（SVC_Log） | 日志查看（管理员直接看/成员申请审批后一次有效）、超管查看授权与查看记录 |
 
 ## 权限模型（人工确认后的实现口径）
 
@@ -45,3 +45,12 @@
 1. `membership` 表增加 `status` 列（待审核/已生效）：类图的成员关系
    没有申请中间态，但 REQ-003 要求"申请 → 审核通过"流程，故补充。
 2. 超管转让后原超管的降级目标访谈未明确，实现按人工决定取"普通用户"。
+3. `operation_log.op_type` 增加"查看日志"类型：REQ-015 要求超管可查看
+   "管理员查看日志"的记录，复用操作日志实体留痕，避免新增表。
+4. `log_access_grant` 表增加 `status` 列（待审批/已批准/已驳回）：
+   REQ-015 的"申请 → 审批"流程需要中间态，与 membership.status 同一模式。
+5. `ledger` 表增加 `settling` 标志：REQ-012 要求结算期间不允许任何操作，
+   结算开始前置位、结束释放，各业务模块入口统一检查并提示
+   "请等到结算后再操作"。
+6. 结算触发权限需求未明确，实现按人工决定取（超级）管理员；
+   无分摊明细的记录在合租"每人应付明细"中全额归属提交人。

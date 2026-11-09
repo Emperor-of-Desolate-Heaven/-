@@ -9,6 +9,7 @@ alt 分支"已被其他管理员审核中 → 拒绝审核并提示"。
 from dao import log_dao, membership_dao, record_dao
 from model.enums import LogOpType, MembershipStatus, RecordStatus
 from model.operation_log import OperationLog
+from service import settle_service
 
 
 def _require_admin(ledger_id: int, auditor_id: int):
@@ -37,6 +38,7 @@ def approve(record_id: int, auditor_id: int) -> None:
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     _require_admin(record.ledger_id, auditor_id)
     if record.status is not RecordStatus.PENDING:
         raise ValueError("仅待审核记录可审核")
@@ -54,6 +56,7 @@ def reject(record_id: int, auditor_id: int, reason: str = "") -> None:
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     _require_admin(record.ledger_id, auditor_id)
     if not record.can_transition_to(RecordStatus.REJECTED):
         raise ValueError("当前状态不能驳回（仅待审核或已生效记录可驳回）")

@@ -47,3 +47,18 @@ def list_by_ledger(ledger_id: int) -> list[OperationLog]:
                 (ledger_id,),
             )
             return [_row_to_log(row) for row in cur.fetchall()]
+
+
+def list_by_type(
+    ledger_id: int, op_type: LogOpType
+) -> list[OperationLog]:
+    """按类型查询账本日志（如"查看日志"记录，供超管查看，REQ-015）。"""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM operation_log "
+                "WHERE ledger_id = %s AND op_type = %s "
+                "ORDER BY log_time DESC, log_id DESC",
+                (ledger_id, op_type.value),
+            )
+            return [_row_to_log(row) for row in cur.fetchall()]

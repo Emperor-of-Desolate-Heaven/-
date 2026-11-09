@@ -17,3 +17,4 @@ class Ledger:
     name: str = ""
     template_id: int = 0
     effective_time: Optional[datetime] = None
+    settling: bool = False  # 结算进行中标志（REQ-012：期间拒绝一切操作）

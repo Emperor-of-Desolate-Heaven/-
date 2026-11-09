@@ -4,5 +4,6 @@
 状态流转都在本层；本层只调用 dao，不直接写 SQL。
 """
 
-__all__ = ["audit_service", "auth_service", "ledger_service",
-           "member_service", "record_service"]
+__all__ = ["audit_service", "auth_service", "budget_service",
+           "ledger_service", "log_service", "member_service",
+           "record_service", "settle_service", "stats_service"]

@@ -7,7 +7,7 @@
 
 | 文件 | 对应类图元素 | 说明 |
 |---|---|---|
-| `enums.py` | Role / RecordStatus / LogOpType | 三个枚举；另含 Direction（收支方向，REQ-010 统计需要） |
+| `enums.py` | Role / RecordStatus / LogOpType | 类图三枚举；另含 Direction（收支方向）、MembershipStatus（成员关系状态）、GrantStatus（授权申请状态） |
 | `user.py` | 用户 | 用户 ID、用户名、密码哈希 |
 | `scene_template.py` | 场景模板 | 旅行/合租/家庭三套模板的默认类别、结算方式、预算口径 |
 | `ledger.py` | 账本 | 账本名称、所用模板、生效时间 |
@@ -35,3 +35,8 @@
 
 - 新增 `Direction` 枚举（收入/支出）：需求 REQ-017 规定金额恒为正数，
   但统计要区分总收入与总支出（REQ-010），因此增加方向字段。
+- `LogOpType` 增加"查看日志"类型：REQ-015 要求超管可查看
+  "管理员查看日志"的记录，复用操作日志实体留痕。
+- `LogAccessGrant` 增加 `status` 字段（待审批/已批准/已驳回）：
+  REQ-015 的"申请 → 审批"流程需要中间态（类图只有"授权"）。
+- `Ledger` 增加 `settling` 字段：REQ-012 结算期间拒绝一切操作。

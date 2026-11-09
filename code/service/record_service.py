@@ -16,6 +16,7 @@ from model.enums import Direction, LogOpType, MembershipStatus, RecordStatus, \
 from model.ledger_record import LedgerRecord
 from model.operation_log import OperationLog
 from model.split_item import SplitItem
+from service import settle_service
 
 # 金额上限（REQ-013 未定死具体数值，取 DECIMAL(12,2) 列上限）
 MAX_AMOUNT = Decimal("9999999999.99")
@@ -98,6 +99,7 @@ def submit_record(
     类别校验 → 查重 → 落库为待审核 → 保存分摊明细。
     返回新记录 ID。
     """
+    settle_service.ensure_not_settling(ledger_id)
     _get_active_member(ledger_id, submitter_id)
     parsed = _parse_amount(amount)
     if not reason.strip():
@@ -136,6 +138,7 @@ def resubmit(
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     if not record.can_transition_to(RecordStatus.PENDING):
         raise ValueError("当前状态不能重新提交（仅已驳回记录可重新提交）")
     if record.submitter_id != operator_id:
@@ -159,6 +162,7 @@ def modify_amount(record_id: int, new_amount, operator_id: int) -> None:
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     _require_admin(record.ledger_id, operator_id)
     if record.status is not RecordStatus.ACTIVE:
         raise ValueError("仅已生效记录可修改金额")
@@ -173,6 +177,7 @@ def delete_record(record_id: int, operator_id: int) -> None:
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     _require_admin(record.ledger_id, operator_id)
     if not record.can_transition_to(RecordStatus.DELETED):
         raise ValueError("仅已生效记录可删除")
@@ -193,6 +198,7 @@ def apply_transfer(record_id: int, new_owner_id: int, operator_id: int) -> None:
     record = record_dao.get_by_id(record_id)
     if record is None:
         raise ValueError("记录不存在")
+    settle_service.ensure_not_settling(record.ledger_id)
     if record.submitter_id != operator_id:
         raise PermissionError("仅提交人本人可发起转让")
     if not record.can_transition_to(RecordStatus.PENDING):

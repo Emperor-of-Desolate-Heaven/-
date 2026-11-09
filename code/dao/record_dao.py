@@ -368,6 +368,32 @@ def sum_by_direction(ledger_id: int, direction: Direction) -> Decimal:
             return Decimal(row["total"])
 
 
+def list_active_between(
+    ledger_id: int,
+    time_from: Optional[datetime] = None,
+    time_to: Optional[datetime] = None,
+) -> list[LedgerRecord]:
+    """查询时间区间内的已生效记录（REQ-011/REQ-012 结算统计用）。
+
+    仅已生效记录参与结算；time_to 为开区间（结算时间点 0:00 的记录
+    不计入，REQ-012"只统计 0:00 前已生效的记录"）。
+    """
+    sql = ("SELECT * FROM ledger_record "
+           "WHERE ledger_id = %s AND status = %s")
+    params: list = [ledger_id, RecordStatus.ACTIVE.value]
+    if time_from is not None:
+        sql += " AND record_time >= %s"
+        params.append(time_from)
+    if time_to is not None:
+        sql += " AND record_time < %s"
+        params.append(time_to)
+    sql += " ORDER BY record_time, record_id"
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, tuple(params))
+            return [_row_to_record(row) for row in cur.fetchall()]
+
+
 def count_by_status(ledger_id: int, status: RecordStatus) -> int:
     """统计账本内某状态的记录条数（结算结果展示用）。"""
     with get_connection() as conn:

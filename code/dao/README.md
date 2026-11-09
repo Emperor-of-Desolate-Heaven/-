@@ -10,13 +10,13 @@
 | `db.py` | — | 连接管理 `get_connection()`：正常自动提交、异常回滚、最后关闭 |
 | `user_dao.py` | user | 新增用户、按用户名/ID 查询 |
 | `template_dao.py` | scene_template | 查全部模板、按 ID/类型查询 |
-| `ledger_dao.py` | ledger | 创建账本、按 ID 查、按用户查其全部账本 |
+| `ledger_dao.py` | ledger | 创建账本、按 ID 查、按用户查其全部账本、结算锁查询/设置 |
 | `membership_dao.py` | membership | 成员增删、改角色/可见性、按角色计数 |
 | `budget_dao.py` | budget | upsert 预算（一账本至多一份）、按账本查 |
-| `record_dao.py` | ledger_record | 增、按状态查、改状态/金额、查重、组合查询、按方向汇总 |
+| `record_dao.py` | ledger_record | 增、按状态查、改状态/金额、查重、组合查询、按方向汇总、区间内已生效列表（结算用） |
 | `split_dao.py` | split_item | 批量写分摊、按记录查、删除 |
-| `log_dao.py` | operation_log | 写日志、按账本查（倒序） |
-| `grant_dao.py` | log_access_grant | 新增授权、查有效授权、标记已用 |
+| `log_dao.py` | operation_log | 写日志、按账本查（倒序）、按类型查（查看日志记录） |
+| `grant_dao.py` | log_access_grant | 申请（待审批）、审批改状态、查有效/待审批授权、标记已用、按账本/管理员查 |
 | `settlement_dao.py` | settlement | 保存结算、历史列表、最近一次 |
 
 ## 关键约定
