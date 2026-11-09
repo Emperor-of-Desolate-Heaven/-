@@ -3,6 +3,7 @@
 - Role：账本成员角色（REQ-001）
 - RecordStatus：收支记录状态（REQ-007）
 - LogOpType：操作日志类型（REQ-015）
+- Direction：收支方向（REQ-010 统计需要区分收入与支出）
 """
 
 from enum import Enum
@@ -42,6 +43,17 @@ class LogOpType(Enum):
     DELETE = "删除"
     MODIFY = "修改"
     AUDIT_FAIL = "审核失败"
+
+
+class Direction(Enum):
+    """收支方向。
+
+    金额本身恒为正数（REQ-017 拒绝负数），收入与支出由此字段区分，
+    统计时分别汇总为总收入和总支出（REQ-010）。
+    """
+
+    INCOME = "收入"
+    EXPENSE = "支出"
 
 
 # 角色等级：创建者与超级管理员权限相同（需求约定创建者默认为超级管理员）

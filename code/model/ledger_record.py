@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from model.enums import RecordStatus
+from model.enums import Direction, RecordStatus
 
 # 状态机允许的转换（REQ-007）：键为当前状态，值为可转换到的目标状态集合。
 # 已生效 → 待审核 仅用于转让申请并入审核流程。
@@ -36,6 +36,7 @@ class LedgerRecord:
     category: str = ""
     reason: str = ""
     amount: Decimal = Decimal("0.00")
+    direction: Direction = Direction.EXPENSE  # 金额恒为正，收支由方向区分
     record_time: Optional[datetime] = None
     receipt: str = ""  # 支付凭证（可选）
     status: RecordStatus = RecordStatus.PENDING

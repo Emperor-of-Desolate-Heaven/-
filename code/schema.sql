@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS ledger_record (
   category      VARCHAR(50)  NOT NULL COMMENT '类别（来自模板默认类别）',
   reason        VARCHAR(200) NOT NULL,
   amount        DECIMAL(12,2) NOT NULL,
+  direction     ENUM('收入','支出') NOT NULL DEFAULT '支出' COMMENT '收支方向（金额恒为正，REQ-017）',
   record_time   DATETIME NOT NULL,
   receipt       VARCHAR(200) COMMENT '支付凭证',
   status        ENUM('待审核','已生效','已驳回','已删除') NOT NULL DEFAULT '待审核',
