@@ -10,8 +10,7 @@ from presentation import login_view
 def main() -> None:
     """程序入口：打印横幅后进入登录界面。"""
     print("=" * 40)
-    print("多人共享记账系统（命令行版）")
-    print("实验三实现 · 分层架构对应实验二组件图")
+    print("多人共享记账系统")
     print("=" * 40)
     login_view.main()
 
