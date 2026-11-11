@@ -1,7 +1,11 @@
-"""数据库连接管理：统一维护与本机 MySQL 的连接。
+"""数据库连接管理：统一维护与 MySQL 的连接。
 
-连接参数优先从环境变量读取，其次读取本机配置文件 config_local.py
-（该文件保存数据库密码，已被 git 忽略，不进公开仓库）。
+连接参数按"环境变量 > config_local.py > 默认值"的顺序读取：
+
+- 默认值面向本机 MySQL（127.0.0.1 / root / ledger_db）；
+- 要在客户端机器上连接远程数据库服务器（多人共享部署），
+  只需在 config_local.py 或环境变量中给出 DB_HOST 等参数，
+  客户端无需安装 MySQL。
 """
 
 import os
@@ -10,16 +14,25 @@ from contextlib import contextmanager
 import pymysql
 from pymysql.cursors import DictCursor
 
-try:  # 本机密码配置，缺失时回退为环境变量或空密码
-    from config_local import DB_PASSWORD as _LOCAL_PASSWORD  # pylint: disable=import-error
+try:  # 本机配置（可缺省：文件不存在或未写某项时用默认值/环境变量）
+    import config_local as _local  # pylint: disable=import-error
 except ImportError:  # 未创建本机配置时
-    _LOCAL_PASSWORD = ""
+    _local = None
 
-HOST = os.environ.get("LEDGER_DB_HOST", "127.0.0.1")
-PORT = int(os.environ.get("LEDGER_DB_PORT", "3306"))
-USER = os.environ.get("LEDGER_DB_USER", "root")
-PASSWORD = os.environ.get("LEDGER_DB_PASSWORD", _LOCAL_PASSWORD)
-DATABASE = os.environ.get("LEDGER_DB_NAME", "ledger_db")
+
+def _setting(env_key: str, local_attr: str, default: str) -> str:
+    """取一项连接配置：环境变量优先，其次 config_local.py，最后默认值。"""
+    value = os.environ.get(env_key)
+    if value is None and _local is not None:
+        value = getattr(_local, local_attr, None)
+    return default if value is None else str(value)
+
+
+HOST = _setting("LEDGER_DB_HOST", "DB_HOST", "127.0.0.1")
+PORT = int(_setting("LEDGER_DB_PORT", "DB_PORT", "3306"))
+USER = _setting("LEDGER_DB_USER", "DB_USER", "root")
+PASSWORD = _setting("LEDGER_DB_PASSWORD", "DB_PASSWORD", "")
+DATABASE = _setting("LEDGER_DB_NAME", "DB_NAME", "ledger_db")
 
 
 @contextmanager
