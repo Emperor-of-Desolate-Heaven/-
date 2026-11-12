@@ -1,6 +1,6 @@
 # 多人共享记账系统需求整理（最终版）
 
-仓库地址：[github.com/Emperor-of-Desolate-Heaven/-.git](https://github.com/Emperor-of-Desolate-Heaven/-.git)
+仓库地址：[github.com/Emperor-of-Desolate-Heaven/shared-ledger-system.git](https://github.com/Emperor-of-Desolate-Heaven/shared-ledger-system.git)
 版本：最终版 v2（人工审查后）　日期：2026-10-21
 说明：本文件基于 AI 初稿（对应 lab1-ai-draft 标签）生成，经人工审查后修改，需求编号保持不变。
 

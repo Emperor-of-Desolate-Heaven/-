@@ -53,7 +53,6 @@ code/
    GRANT ALL PRIVILEGES ON ledger_db.* TO 'ledger_app'@'%';
    FLUSH PRIVILEGES;
    ```
-
 4. 确认 MySQL 监听外部地址（`bind_address` 为 `*` 或服务器网卡地址），
    并在防火墙放行 3306 端口。
    课程演示在局域网内使用即可，不建议直接暴露到公网。
